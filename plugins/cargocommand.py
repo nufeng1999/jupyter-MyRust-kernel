@@ -61,7 +61,7 @@ class MyCargocmd(IStag):
             npmcmd=['cargo']
             if(self.kobj.sys=="Windows"):
                 npmcmd=['cmd','/c','cargo']
-            p = self.kobj.create_jupyter_subprocess(npmcmd+commands,cwd=os.path.abspath(''),shell=False,magics=magics)
+            p = self.kobj.create_jupyter_subprocess(npmcmd+commands,cwd=cwd,shell=False,magics=magics)
             self.kobj.g_rtsps[str(p.pid)]=p
             if magics!=None and len(self.kobj.addkey2dict(magics,'showpid'))>0:
                 self.kobj._logln("The process PID:"+str(p.pid))
