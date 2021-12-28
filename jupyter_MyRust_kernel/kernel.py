@@ -1263,7 +1263,7 @@ class RustKernel(MyKernel):
         'info':'[MyRust Kernel]',
         'extension':'.rs',
         'execsuffix':'.exe',
-        'needmain':'',
+        'needmain':'true',
         'compiler':{
             'cmd':'rustc',
             'clargs':['-o'],
