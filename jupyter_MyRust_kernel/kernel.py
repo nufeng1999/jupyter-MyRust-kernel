@@ -1263,6 +1263,7 @@ class RustKernel(MyKernel):
         'info':'[MyRust Kernel]',
         'extension':'.rs',
         'execsuffix':'.exe',
+        'needmain':'',
         'compiler':{
             'cmd':'rustc',
             'clargs':['-o'],
@@ -1289,7 +1290,6 @@ class RustKernel(MyKernel):
             "int main(List<String> arguments){\n"
     main_foot = "\nreturn 0;\n}"
     
-##//%include:../../src/comm_attribute.py
     def __init__(self, *args, **kwargs):
         super(RustKernel, self).__init__(*args, **kwargs)
         self.kernelinfo=self.kernel_info['info']
@@ -1300,7 +1300,7 @@ class RustKernel(MyKernel):
         self.wAll = True # show all warnings by default
         self.wError = False # but keep comipiling for warnings
 #################
-    def getout_filename(self,cflags,defoutfile):
+    def getCompout_filename(self,cflags,defoutfile):
         outfile=''
         binary_filename=defoutfile
         index=0
@@ -1339,7 +1339,7 @@ class RustKernel(MyKernel):
         #             del cflags[cflags.index('--outFile')]
         #     binary_filename=outfile
         #     index+=1
-        binary_filename=self.getout_filename(cflags,outfile)
+        binary_filename=self.getCompout_filename(cflags,outfile)
         args=[]
         if magics!=None and len(self.addkey2dict(magics,'ccompiler'))>0:
             args = magics['ccompiler'] + orig_cflags +[source_filename] + orig_ldflags
@@ -1388,10 +1388,10 @@ class RustKernel(MyKernel):
         if len(self.kernel_info['interpreter']['cmd'])>0:
             interpreter+=[self.kernel_info['interpreter']['cmd']]
             if len(self.kernel_info['interpreter']['clargs'])>0:
-                interpreter+=[self.kernel_info['interpreter']['clargs']]
+                interpreter+=self.kernel_info['interpreter']['clargs']
             interpreter+=[fil_ename]
             if len(self.kernel_info['interpreter']['crargs'])>0:
-                interpreter+=[self.kernel_info['interpreter']['crargs']]
+                interpreter+=self.kernel_info['interpreter']['crargs']
         cmd=[fil_ename]
         if len(interpreter)>0:
             cmd=interpreter
@@ -1424,7 +1424,7 @@ class RustKernel(MyKernel):
             fil_ename=binary_filename
             return_code=returncode
         
-        if returncode!=0:return  True,retinfo, code,fil_ename,retstr
+            if returncode!=0:return  True,retinfo, code,fil_ename,retstr
         return bcancel_exec,retinfo,magics, code,fil_ename,retstr
 ##do_rust_create_codefile
     def do_create_codefile(self,magics,code, silent, store_history=True,
@@ -1446,7 +1446,8 @@ class RustKernel(MyKernel):
                 user_expressions=None, allow_stdin=False):
         bcancel_exec=False
         retinfo=self.get_retinfo()
-        if len(self.addkey2dict(magics,'noruncode'))<1 :
+        if (len(self.addkey2dict(magics,'noruncode'))<1 
+            and len(self.kernel_info['needmain'])>0 ):
             magics, code = self._add_main(magics, code)
         return_code=0
         fil_ename=''
