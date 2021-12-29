@@ -37,9 +37,8 @@ import importlib.util
 import inspect
 from plugins.ISpecialID import IStag,IDtag,IBtag,ITag,ICodePreproc
 from plugins._filter2_magics import Magics
-#
-#   MyPython Jupyter Kernel
-#
+##
+##
 class IREPLWrapper(replwrap.REPLWrapper):
     def __init__(self, write_to_stdout, write_to_stderr, read_from_stdin,
                 cmd_or_spawn,replsetip, orig_prompt, prompt_change,
@@ -236,35 +235,34 @@ class MyKernel(Kernel):
         self.isdstr=False
         self.issstr=False
         self._loglevel='1'
-        # mastertemp = tempfile.mkstemp(suffix='.out')
-        # os.close(mastertemp[0])
-        # self.master_path = mastertemp[1]
-        # self.resDir = path.join(path.dirname(path.realpath(__file__)), 'resources')
         self.chk_replexit_thread = Thread(target=self.chk_replexit, args=(self.g_rtsps))
         self.chk_replexit_thread.daemon = True
         self.chk_replexit_thread.start()
         self.init_plugin()
         self.mag=Magics(self,self.plugins,self.ICodePreprocs)
+##
     pausestr='''
-get_char()
-{
-SAVEDSTTY=`stty -g`
-stty -echo
-stty cbreak
-dd if=/dev/tty bs=1 count=1 2> /dev/null
-stty -raw
-stty echo
-stty $SAVEDSTTY
-}
-echo ""
-echo "Press any key to start...or Press Ctrl+c to cancel"
-char=`get_char`
-echo "OK"
-'''
+        get_char()
+        {
+        SAVEDSTTY=`stty -g`
+        stty -echo
+        stty cbreak
+        dd if=/dev/tty bs=1 count=1 2> /dev/null
+        stty -raw
+        stty echo
+        stty $SAVEDSTTY
+        }
+        echo ""
+        echo "Press any key to start...or Press Ctrl+c to cancel"
+        char=`get_char`
+        echo "OK"
+        '''
+##
     silent=None
     jinja2_env = Environment()
     g_rtsps={}
     g_chkreplexit=True
+##
     def get_retinfo(self, rettype:int=0):
         retinfo={'status': 'ok', 'execution_count': self.execution_count, 'payload': [], 'user_expressions': {}}
         return retinfo
@@ -285,6 +283,7 @@ echo "OK"
                 cpstr=cpstr[1:] 
             # self._log(cpstr)
             magics['_st']['joptions'][index+1]=cpstr
+##
     def resolving_enveqval(self, envstr):
         if envstr is None or len(envstr.strip())<1:
             return os.environ
@@ -312,8 +311,6 @@ echo "OK"
             li= [i for i in li if i != '']
             env_dict[str(li[0])]=li[1]
         return env_dict
-##//%include:../src/_templateHander.py
-##//%include:../src/_readtemplatefile.py
     def get_outencode(self,magics):
         encodestr=self.get_magicsSvalue(magics,"outencode")
         if len(encodestr)<1:
@@ -626,7 +623,6 @@ echo "OK"
         except Exception as e:
             self._logln("loadurl error! "+str(e),3)
         return content
-    #####################################################################
     def _start_replprg(self,command,args,magics):
         # Signal handlers are inherited by forked processes, and we can't easily
         # reset it from the subprocess. Since kernelapp ignores SIGINT except in
@@ -715,7 +711,6 @@ echo "OK"
         else:
             return {'status': 'ok', 'execution_count': self.execution_count,
                     'payload': [], 'user_expressions': {}}
-    #####################################################################
     def do_shell_command(self,commands,cwd=None,shell=True,env=True,magics=None):
         try:
             if len(magics['_bt']['replcmdmode'])>0:
@@ -746,7 +741,6 @@ echo "OK"
             return
         except Exception as e:
             self._logln("Executable command error! "+str(e)+"\n",3)
-    
     def do_Py_command(self,commands,cwd=None,shell=False,env=True,magics=None):
         try:
             cmds=[]
@@ -765,7 +759,6 @@ echo "OK"
         except Exception as e:
             self._logln("Executable python command error! "+str(e)+"\n",3)
         return
-    
     def send_cmd(self,pid,cmd):
         try:
             # self._write_to_stdout("send cmd PID:"+pid+"\n cmd:"+cmd)
@@ -870,8 +863,6 @@ echo "OK"
         return fil_ename
     def generate_Pythonfile(self, source_filename, binary_filename, cflags=None, ldflags=None):
         return
-#####################################################################
-#####################################################################
     def _add_main(self, magics, code):
         # remove comments
         tmpCode = re.sub(r"//.*", "", code)
@@ -913,48 +904,61 @@ echo "OK"
                         self._log(pobj.getName(pobj)+"---"+str(e)+"\n")
                     finally:pass
         return bcancel_exec,retstr
+##
     def do_execute_script(self, code, magics,silent, store_history=True,
                    user_expressions=None, allow_stdin=True):
         try:
+            ##预处理
             bcancel_exec,retinfo,magics, code=self.do_preexecute(
                 code,magics, 
                 silent, store_history,user_expressions, allow_stdin)
             if bcancel_exec:return retinfo
+            
             return_code=0
             fil_ename=''
             retstr=''
+            ##生成文件前通知插件
             bcancel_exec,retstr=self.raise_plugin(code,magics,return_code,fil_ename,1,1)
             if bcancel_exec:return  self.get_retinfo()
+            ##生成代码文件
             bcancel_exec,retinfo,magics, code,fil_ename,retstr=self.do_create_codefile(
                 magics,code, 
                 silent, store_history,user_expressions, allow_stdin)
             if bcancel_exec:return retinfo
             code,magics,return_code,fil_ename
+            ##生成文件后通知插件
             bcancel_exec,retstr=self.raise_plugin(code,magics,return_code,fil_ename,1,2)
             if bcancel_exec:return  self.get_retinfo()
             fil_ename=magics['codefilename']
             if len(self.get_magicsbykey(magics,'noruncode'))>0:
                 bcancel_exec=True
                 return self.get_retinfo()
+            ##编译文件前通知插件
             bcancel_exec,retstr=self.raise_plugin(code,magics,return_code,fil_ename,2,1)
             if bcancel_exec:return  self.get_retinfo()
+            ##编译文件
             bcancel_exec,retinfo,magics, code,fil_ename,retstr=self.do_compile_code(
                 return_code,fil_ename,magics,code, 
                 silent, store_history,user_expressions, allow_stdin)
             if bcancel_exec:return  retinfo
+            ##编译文件后通知插件
             bcancel_exec,retstr=self.raise_plugin(code,magics,return_code,fil_ename,2,2)
             if bcancel_exec:return  self.get_retinfo()
             if len(self.get_magicsbykey(magics,'onlycompile'))>0:
                 self._log("only run compile \n")
                 bcancel_exec=True
                 return retinfo
+                
+            ##运行文件前通知插件
             bcancel_exec,retstr=self.raise_plugin(code,magics,return_code,fil_ename,3,1)
             if bcancel_exec:return self.get_retinfo()
+            ##运行代码
             self._logln("The process :"+fil_ename)
             bcancel_exec,retinfo,magics, code,fil_ename,retstr=self.do_runcode(
                 return_code,fil_ename,magics,code, 
                 silent, store_history,user_expressions, allow_stdin)
             if bcancel_exec:return retinfo
+            ##文件执行结束后通知插件
             bcancel_exec,retstr=self.raise_plugin(code,magics,return_code,fil_ename,3,3)
             if bcancel_exec:return self.get_retinfo()
         except Exception as e:
@@ -966,43 +970,55 @@ echo "OK"
             return_code=0
             fil_ename=''
             outpath=''
+            
             bcancel_exec,retinfo,magics, code=self.do_preexecute(
                 code, magics,
                 silent, store_history,user_expressions, allow_stdin)
             if bcancel_exec:return retinfo
             return_code=0
             fil_ename=''
+            
+            ##生成文件前通知插件
             bcancel_exec,retstr=self.raise_plugin(code,magics,return_code,fil_ename,1,1)
             if bcancel_exec:return  self.get_retinfo()
+            ##生成代码文件
             bcancel_exec,retinfo,magics, code,fil_ename,class_filename,outpath,retstr=self.do_create_codefile(
                 magics,code, 
                 silent, store_history,user_expressions, allow_stdin)
             if bcancel_exec:return retinfo
+            ##生成文件后通知插件
             bcancel_exec,retstr=self.raise_plugin(code,magics,return_code,fil_ename,1,2)
             if bcancel_exec:return  self.get_retinfo()
             fil_ename=magics['codefilename']
             if len(self.get_magicsbykey(magics,'noruncode'))>0:
                 bcancel_exec=True
                 return self.get_retinfo()
+            
+            ##编译文件前通知插件
             bcancel_exec,retstr=self.raise_plugin(code,magics,return_code,fil_ename,2,1)
             if bcancel_exec:return  self.get_retinfo()
+            ##编译文件
             bcancel_exec,retinfo,magics, code,fil_ename,class_filename,outpath,retstr=self.do_compile_code(
                 return_code,fil_ename,magics,code, 
                 silent, store_history,user_expressions, allow_stdin)
             if bcancel_exec:return  self.get_retinfo()
+            ##编译文件后通知插件
             bcancel_exec,retstr=self.raise_plugin(code,magics,return_code,fil_ename,2,2)
             if bcancel_exec:return  self.get_retinfo()
             if len(self.get_magicsbykey(magics,'onlycompile'))>0:
                 self._log("only run compile \n")
                 bcancel_exec=True
                 return retinfo
+            ##运行文件前通知插件
             bcancel_exec,retstr=self.raise_plugin(code,magics,return_code,fil_ename,3,1)
             if bcancel_exec:return self.get_retinfo()
+            ##运行代码
             self._logln("The process :"+class_filename)
             bcancel_exec,retinfo,magics, code,fil_ename,retstr=self.do_runcode(
                 return_code,fil_ename,class_filename,outpath,magics,code, 
                 silent, store_history,user_expressions, allow_stdin)
             if bcancel_exec:return retinfo
+            ##文件执行结束后通知插件
             bcancel_exec,retstr=self.raise_plugin(code,magics,return_code,fil_ename,3,3)
             if bcancel_exec:return self.get_retinfo()
         except Exception as e:
@@ -1011,37 +1027,46 @@ echo "OK"
     def do_execute_runprg(self, code, magics,silent, store_history=True,
                    user_expressions=None, allow_stdin=True):
         try:
+            ##预处理
             bcancel_exec,retinfo,magics, code=self.dor_preexecute(
                 code,magics, 
                 silent, store_history,user_expressions, allow_stdin)
             if bcancel_exec:return retinfo
+            
             return_code=0
             fil_ename=''
+            ##生成文件前通知插件
             bcancel_exec,retstr=self.raise_plugin(code,magics,return_code,fil_ename,1,1)
             if bcancel_exec:return  self.get_retinfo()
+            ##生成代码文件
             bcancel_exec,retinfo,magics, code,fil_ename,retstr=self.dor_create_codefile(
                 magics,code, 
                 silent, store_history,user_expressions, allow_stdin)
             if bcancel_exec:return retinfo
+            ##生成文件后通知插件
             bcancel_exec,retstr=self.raise_plugin(code,magics,return_code,fil_ename,1,2)
             if bcancel_exec:return  self.get_retinfo()
             fil_ename=magics['codefilename']
             if len(self.get_magicsbykey(magics,'noruncode'))>0:
                 bcancel_exec=True
                 return self.get_retinfo()
+            
+            ##运行文件前通知插件
             bcancel_exec,retstr=self.raise_plugin(code,magics,return_code,fil_ename,3,1)
             if bcancel_exec:return self.get_retinfo()
+            ##运行代码
             self._logln("The process :"+fil_ename)
             bcancel_exec,retinfo,magics, code,fil_ename,retstr=self.dor_runcode(
                 return_code,fil_ename,magics,code, 
                 silent, store_history,user_expressions, allow_stdin)
             if bcancel_exec:return retinfo
+            ##文件执行结束后通知插件
             bcancel_exec,retstr=self.raise_plugin(code,magics,return_code,fil_ename,3,3)
             if bcancel_exec:return self.get_retinfo()
         except Exception as e:
             self._log(""+str(e),3)
         return self.get_retinfo()
-##do_runcode
+##
     def dor_runcode(self,return_code,fil_ename,magics,code, silent, store_history=True,
                     user_expressions=None, allow_stdin=True):    
         ##runprg
@@ -1074,7 +1099,6 @@ echo "OK"
         if p.returncode != 0:
             self._logln("Executable exited with code {}".format(p.returncode),2)
         return bcancel_exec,retinfo,magics, code,fil_ename,retstr
-##do_create_codefile
     def dor_create_codefile(self,magics,code, silent, store_history=True,
                     user_expressions=None, allow_stdin=True):    
         ##runprg
@@ -1091,7 +1115,6 @@ echo "OK"
         return_code=True
         
         return bcancel_exec,retinfo,magics, code,fil_ename,retstr
-##do_preexecute
     def dor_preexecute(self,code,magics,silent, store_history=True,
                 user_expressions=None, allow_stdin=False):        
         ##runprg
@@ -1099,6 +1122,7 @@ echo "OK"
         bcancel_exec=False
         retinfo=self.get_retinfo()
         return bcancel_exec,retinfo,magics, code
+##
     def do_execute(self, code, silent, store_history=True,
                    user_expressions=None, allow_stdin=True):
         self.silent = silent
@@ -1112,6 +1136,7 @@ echo "OK"
             bcancel_exec=True
             retinfo= self.send_replcmd(code, silent, store_history,user_expressions, allow_stdin)
             return retinfo
+        
         if(len(self.get_magicsSvalue(magics,'runprg'))>0):
             retinfo=self.do_execute_runprg(code, magics,silent, store_history,
                    user_expressions, allow_stdin)
@@ -1126,16 +1151,16 @@ echo "OK"
         elif(self.runfiletype=='exe'):
             retinfo=self.do_execute_script(code, magics,silent, store_history,
                    user_expressions, allow_stdin)
+        
+        
         self.cleanup_files()
         return retinfo
+##
     def do_shutdown(self, restart):
         self.g_chkreplexit=False
         self.chk_replexit_thread.join()
         # self.onkernelshutdown()
         self.cleanup_files()
-#####################################################################
-##接口发现并注册
-##//%test
 ##
     ISplugins={"0":[],
          "1":[],
@@ -1268,7 +1293,8 @@ class RustKernel(MyKernel):
         'needmain':'true',
         'compiler':{
             'cmd':'rustc',
-            'clargs':['-o'],
+            'outfileflag':'-o',
+            'clargs':[],
             'crargs':[],
         },
         'interpreter':{
@@ -1287,9 +1313,7 @@ class RustKernel(MyKernel):
     runfiletype='script'
     banner = "Rust kernel.\n" \
              "Uses Rust, compiles in rust, and creates source code files and executables in temporary folder.\n"
-    main_head = "\n" \
-            "\n" \
-            "int main(List<String> arguments){\n"
+    main_head = "\n\nint main(List<String> arguments){\n"
     main_foot = "\nreturn 0;\n}"
     
     def __init__(self, *args, **kwargs):
@@ -1301,22 +1325,21 @@ class RustKernel(MyKernel):
         self.linkMaths = True # always link math library
         self.wAll = True # show all warnings by default
         self.wError = False # but keep comipiling for warnings
-#################
-    def getCompout_filename(self,cflags,defoutfile):
+    def getCompout_filename(self,cflags,outfileflag,defoutfile):
         outfile=''
         binary_filename=defoutfile
         index=0
         for s in cflags:
-            if s.startswith('-o'):
-                if(len(s)>2):
-                    outfile=s[2:]
+            if s.startswith(outfileflag):
+                if(len(s)>len(outfileflag)):
+                    outfile=s[len(outfileflag):]
                     del cflags[index]
                 else:
-                    outfile=cflags[cflags.index('-o')+1]
+                    outfile=cflags[cflags.index(outfileflag)+1]
                     if outfile.startswith('-'):
                         outfile=binary_filename
-                    del cflags[cflags.index('-o')+1]
-                    del cflags[cflags.index('-o')]
+                    del cflags[cflags.index(outfileflag)+1]
+                    del cflags[cflags.index(outfileflag)]
             binary_filename=outfile
             index+=1
         return binary_filename
@@ -1327,21 +1350,12 @@ class RustKernel(MyKernel):
         ccmd=[]
         clargs=[]
         crargs=[]
-        # index=0
-        # for s in cflags:
-        #     if s.startswith('--outFile'):
-        #         if(len(s)>9):
-        #             outfile=s[9:]
-        #             del cflags[index]
-        #         else:
-        #             outfile=cflags[cflags.index('--outFile')+1]
-        #             if outfile.startswith('-'):
-        #                 outfile=binary_filename
-        #             del cflags[cflags.index('--outFile')+1]
-        #             del cflags[cflags.index('--outFile')]
-        #     binary_filename=outfile
-        #     index+=1
-        binary_filename=self.getCompout_filename(cflags,outfile)
+        outfileflag=[]
+        oft=''
+        if len(self.kernel_info['compiler']['outfileflag'])>0:
+            oft=self.kernel_info['compiler']['outfileflag']
+            outfileflag=[oft]
+            binary_filename=self.getCompout_filename(cflags,oft,outfile)
         args=[]
         if magics!=None and len(self.addkey2dict(magics,'ccompiler'))>0:
             args = magics['ccompiler'] + orig_cflags +[source_filename] + orig_ldflags
@@ -1352,7 +1366,7 @@ class RustKernel(MyKernel):
                 clargs+=self.kernel_info['compiler']['clargs']
             if len(self.kernel_info['compiler']['crargs'])>0:
                 crargs+=self.kernel_info['compiler']['crargs']
-            args = ccmd+cflags+[source_filename] +clargs+ [binary_filename]+crargs+ ldflags
+            args = ccmd+cflags+[source_filename] +clargs+outfileflag+ [binary_filename]+crargs+ ldflags
         # self._log(''.join((' '+ str(s) for s in args))+"\n")
         return self.create_jupyter_subprocess(args,env=env,magics=magics),binary_filename,args
     def _exec_sc_(self,source_filename,magics):
@@ -1370,14 +1384,11 @@ class RustKernel(MyKernel):
             p.write_contents()
             magics['status']=''
             binary_file.name=os.path.join(os.path.abspath(''),outfile)
-            if returncode != 0:  # Compilation failed
+            if returncode != 0:  
                 self._logln(' '.join((str(s) for s in tsccmd))+"\n",3)
-                self._logln("TSC compiler exited with code {}, the executable will not be executed".format(returncode),3)
-                # delete source files before exit
-                os.remove(source_filename)
+                self._logln("compiler exited with code {}, the executable will not be executed".format(returncode),3)
                 os.remove(binary_file.name)
         return p.returncode,binary_file.name
-##do_runcode
     def do_runcode(self,return_code,fil_ename,magics,code, silent, store_history=True,
                     user_expressions=None, allow_stdin=True):
         return_code=return_code
@@ -1385,7 +1396,6 @@ class RustKernel(MyKernel):
         bcancel_exec=False
         retinfo=self.get_retinfo()
         retstr=''
-        ##代码运行前
         interpreter=[]
         if len(self.kernel_info['interpreter']['cmd'])>0:
             interpreter+=[self.kernel_info['interpreter']['cmd']]
@@ -1400,50 +1410,34 @@ class RustKernel(MyKernel):
         p = self.create_jupyter_subprocess(cmd+ magics['_st']['args'],cwd=None,shell=False,env=self.addkey2dict(magics,'env'),magics=magics)
         self.g_rtsps[str(p.pid)]=p
         return_code=p.returncode
-        ##代码启动后
-        # bcancel_exec,retstr=self.raise_plugin(code,magics,return_code,fil_ename,3,2)
-        # if bcancel_exec:return bcancel_exec,retinfo,magics, code,fil_ename,retstr
          
         if magics!=None and len(self.addkey2dict(magics,'showpid'))>0:
             self._write_to_stdout("The process PID:"+str(p.pid)+"\n")
         return_code=p.wait_end(magics)
-        ##代码运行结束
-        # self.cleanup_files()
         if p.returncode != 0:
             self._log("Executable exited with code {}".format(p.returncode),2)
         return bcancel_exec,retinfo,magics, code,fil_ename,retstr
-##do_compile_code
     def do_compile_code(self,return_code,fil_ename,magics,code, silent, store_history=True,
                     user_expressions=None, allow_stdin=True):
-        return_code=0
-        fil_ename=fil_ename
-        sourcefilename=fil_ename
         bcancel_exec=False
         retinfo=self.get_retinfo()
         retstr=''
+        binary_filename=fil_ename
         if len(self.kernel_info['compiler']['cmd'])>0:
             returncode,binary_filename=self._exec_sc_(fil_ename,magics)
-            fil_ename=binary_filename
-            return_code=returncode
-        
             if returncode!=0:return  True,retinfo, code,fil_ename,retstr
-        return bcancel_exec,retinfo,magics, code,fil_ename,retstr
-##do_rust_create_codefile
+        return bcancel_exec,retinfo,magics, code,binary_filename,retstr
     def do_create_codefile(self,magics,code, silent, store_history=True,
                     user_expressions=None, allow_stdin=True):
-        return_code=0
         fil_ename=''
         bcancel_exec=False
         retinfo=self.get_retinfo()
         retstr=''
         
         source_file=self.create_codetemp_file(magics,code,suffix=self.kernel_info['extension'])
-        newsrcfilename=source_file.name
-        fil_ename=newsrcfilename
-        return_code=True
+        fil_ename=source_file.name
         
         return bcancel_exec,retinfo,magics, code,fil_ename,retstr
-##do_rust_preexecute
     def do_preexecute(self,code, magics,silent, store_history=True,
                 user_expressions=None, allow_stdin=False):
         bcancel_exec=False
@@ -1451,6 +1445,4 @@ class RustKernel(MyKernel):
         if (len(self.addkey2dict(magics,'noruncode'))<1 
             and len(self.kernel_info['needmain'])>0 ):
             magics, code = self._add_main(magics, code)
-        return_code=0
-        fil_ename=''
         return bcancel_exec,retinfo,magics, code
