@@ -122,7 +122,7 @@ class RustKernel(MyKernel):
             outfileflag=[oft]
             binary_filename=self.getCompout_filename(cflags,oft,outfile)
         args=[]
-        if magics!=None and len(self.addkey2dict(magics,'ccompiler'))>0:
+        if magics!=None and len(self.mymagics.addkey2dict(magics,'ccompiler'))>0:
             args = magics['ccompiler'] + orig_cflags +[source_filename] + orig_ldflags
         else:
             if len(self.kernel_info['compiler']['cmd'])>0:
